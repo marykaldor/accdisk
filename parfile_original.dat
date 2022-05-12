@@ -1,0 +1,48 @@
+#---------------------------------------------------------------------
+# Wavelength scale
+#---------------------------------------------------------------------
+4861	OLAMBDA       nominal wavelength of the line (Angstrom)
+4472	WAVEMIN       minimum wavelength (Angstrom)
+5250	WAVEMAX       maximum wavelength (Angstrom)
+s	WAVESCALE     wavelength scale format
+#                     ^(s=step, d=dat file, 2=2cu file, 3=3cu file)
+2	WAVESTEP      size of wavelength step (Angstrom)
+#                     ^[used if not reading from file]
+'/Users/marykaldor/accdisk/fortran/'	WAVEFILE
+# ^ file with wavelength scale (in single quotes or "none")
+#   [if using path, write it out, do not use environment variables]
+#---------------------------------------------------------------------
+# Integration, units, normalization
+#---------------------------------------------------------------------
+100	NSTEP         integration steps (integer, </= 400)
+y	RELATIVISTIC  include relativistic effects? (y/n) [y]
+max	NORMALIZATION profile normalization scheme (max/flux/none) [max]
+flam    FLUXUNITS     flux density units (fnu/flam) [fnu]
+'model.dat'	  OUTFILE
+# ^ output file where final model is written (in single quotes)
+#   [if using path, write it out, do not use environment variables]
+#---------------------------------------------------------------------
+# Circular disk
+#---------------------------------------------------------------------
+2.5	Q             emissivity power law index
+18	ANGI          disk inclination angle (degrees)
+100	XI1           inner disk radius (GM/c^2)
+5000	XI2           outer disk radius (GM/c^2)
+600	BROAD         broadening parameter (km/s)
+#---------------------------------------------------------------------
+# Wind properties
+#---------------------------------------------------------------------
+1e-7	T0            optical depth normalization (0=no wind)
+0.	ETA           optical depth power-law index
+15	ANGLAM        wind opening angle (degrees)
+f	VERSION       formula for escape probability (f=Flohic, m=Murray)
+#---------------------------------------------------------------------
+# Spiral arms
+#---------------------------------------------------------------------
+3	AMP           contrast of spiral arm (0=no arms)
+1	NARMS         number of arms (integer)
+95	AOBS          spiral orientation (degrees, +ve=outer, -ve=inner)
+-20	PITCH         pitch angle of spiral pattern (+ve=leading, -ve=trailing)
+40	WIDTH         angular width of arm (degrees)
+0	XISPIN        inner spiral arm radius radius (GM/c^2, 0=XI1)
+0	XISPOUT       outer spiral arm radius (GM/c^2, 0=XI2)

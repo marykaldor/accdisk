@@ -1,0 +1,61 @@
+Files needed: rel_profile_wave_pkg.f parfile.dat
+
+Additional files provided: instructions.txt (this file),
+pgplot.pdf (plot of the default model, for reference). 
+
+The main program is in rel_profile_wave_pkg.f. That single file
+includes all the subroutines needed. Compile the program using the
+first command below to produce the executable named rel_profile_wave_pkg.x.
+
+gfortran -o rel_profile_wave_pkg.x rel_profile_wave_pkg.f
+
+If there is a problem with the above command then try one the
+following versions
+
+gfortran -std=legacy -O3 -lgcc -lSystem -o rel_profile_wave_pkg.x rel_profile_wave_pkg.f
+
+gfortran -Wl,-no_pie -std=legacy -fPIC -O3 -lgcc -o rel_profile_wave_pkg.x rel_profile_wave_pkg.f
+
+Then, run the executable. It will read the file parfile.dat and report
+on its contetnts. Running the program with the original version of
+parfile.dat will lead to the following messages
+
+All 27 expected parameters retrieved from parfile.dat                        
+
+ NOTE: XISPIN = 0 or < XI1. Reseting XISPIN = XI1.
+
+Wavelength scale constructed from input parameters
+Final range:  6300.0 -  6900.0 A, Step:   2.0 A,   301 pixels
+[requested range:  6300.0 -  6900.0 A]
+
+Note: The following floating-point exceptions are signalling: IEEE_UNDERFLOW_FLAG IEEE_DENORMAL (this note may or may not show up)
+STOP >*< End of program rel_profile_wave!
+
+The program will generate a new file called model.dat
+
+If the above works as described, your gfortran installation works, the
+command syntax is right, and the necessary libraries are available and
+accessible. By the way, in the above string of messages, the last one
+that starts with "Note: The following floating-point exceptions are
+signalling:" is a system-level command. All other commands above it
+come from the programitself. As long as you are not getting messages
+that contain the work "ERROR" the program is running properly and
+manages to catch improper values of the input parameters and fix them.
+
+The next exercise is to plot the model contained in model.dat. Look at
+the contents of the file to verify that there is a header block (lines
+starting with #) followed by two columns that give the wavelength and
+flux density. The read these columns and plot the spectrum. Compare
+your plot with the plot contained in pgplot.pdf to see if they agree.
+
+Here are some extra exercises to try (optionally). Use a simple
+text editor that can open and read an ASCII file (not a word
+processor). Make sure that the files are not altered at all in the
+process of reading them.
+
+Make a backup copy of parfile.dat to preserve its contents. Look
+inside the file parfile.dat and read the explanations of a few of the
+parameters paying attention to the values they are allowed to
+take. Then, edit some of the parameters and give them values that are
+not allowed. Run rel_profile_wave_pkg.x to see if it catches the
+problems and issues any (new) messages.
