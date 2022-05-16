@@ -210,7 +210,7 @@ img.paste(lrotatedlabelimg, (1360, 350))
 
 # Display and save the image
 img.show()
-# img.save("/Users/marykaldor/accdisk/fortran/broken-plaw.png")
+img.save("/Users/marykaldor/accdisk/fortran/broken-plaw.png")
 
 '''
 Tinting matrix for certain RGB values

@@ -1,22 +1,12 @@
-# phi0 = 0, azimuth at xi = xi2 (location of spiral at outer radius)
-# p goes from 0 to -90
-# xisp = ximin
-# A = contrast, of order a few (2, 3?)
-# psi0 = prescribed, given by a function
-# p = pitch angle, controls how many times the spiral goes around, sign of p will switch way that spiral spins
-# delta = angular width, fatness of the spiral
-# e0 psi^-q is what im already calculating
-# set e0 = 1 and xi = (xi/ximin)
-
 # Broken power law
 # B1 = (R/Rmin)^-q1
 # B2 = A(R/Rmin)^-q2
 # At some Rb they will match (R=Rb, B1=B2)
-'''
+"""
 B1 = B2 = (Rb/Rmin)^-q1 = A(Rb/Rmin)^-q2
 [(Rb/Rmin)^-q1]/[(Rb/Rmin)^-q2] = A
 A = (Rb/Rmin)^(-q1--q2)
-'''
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -61,7 +51,7 @@ def rrangeout(x, y, xcenter, ycenter):
 
 # Create new image to build on
 # Calculate values of radial gradient
-normlistin = []
+normlistinplaw = []
 normlistout = []
 values = []
 im = Image.new("RGB", (1500, 1000), "black")
@@ -74,18 +64,37 @@ for x in range(1, xs):
     for y in range(1, ys):
         if rrangein(x, y, xs / 3, ys / 2):
             # Linear
-            normlistin.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 1)
+            normlistinplaw.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 1)
             # Log
             # normlistin.append(math.log((cart2pol(x, y, xs / 3, ys / 2)[0] ** 1), 10))
         if rrangeout(x, y, xs / 3, ys / 2):
             # This one has an extra factor at the beginning to make sure that the two are equal at Rb
             # Linear
-            normlistin.append((((rb / rmin) ** 0.5) * (cart2pol(x, y, xs / 3, ys / 2)[0] ** 0.5)))
+            normlistinplaw.append((((rb / rmin) ** 0.5) * (cart2pol(x, y, xs / 3, ys / 2)[0] ** 0.5)))
             # Log
             # normlistin.append(math.log((((rb / rmin) ** 0.5) * (cart2pol(x, y, xs / 3, ys / 2)[0] ** 0.5)), 10))
 
-print("max normlistin", max(normlistin))
-print("min normlistin", min(normlistin))
+# General equation for spiral formation and location
+# phi0 = 0, azimuth at xi = xi2 (location of spiral at outer radius)
+# p goes from 0 to -90, pitch angle, controls how many times the spiral goes around, sign of p will switch way that spiral spins
+# xisp = ximin
+# A = contrast, of order a few (2, 3?)
+# set e0 = 1 and xi = (xi/ximin) (I already do this)
+# delta = angular width, fatness of the spiral
+# constant = e0*xi**-q = what I already calculate
+
+
+def e(constant, xi, phi, phi0, xisp, p, a, delta):
+    psi0 = phi0 + math.log(xi / xisp, 10) / math.tan(p)
+    constant*(1 + (a/2) * math.e ** (-4 * math.log(2, math.e) * ((phi - psi0) ** 2) / (delta ** 2)) + (a / 2) * math.e
+              ** (-4 * math.log(2, math.e) * (((2*math.pi)-phi+psi0)**2) / (delta**2)))
+
+
+for x in range(1, xs):
+    for y in range(1, ys):
+        if rrangein(x, y, xs / 3, ys / 2):
+# Figure out how to have spiral apply in the same way across this border - maybe I don't even need one?
+
 
 # Normalize the values of the radial gradient
 maximum = max(normlistin)
@@ -151,10 +160,10 @@ mind = normlistin.index(maximum)
 # print(qind, hind, tqind, mind)
 # print(values[qind], values[hind], values[tqind], values[mind])
 print("values", values[0], values[10], values[100], values[1000], values[10000])
-quarter = "%.3f" % (quarter)
-half = "%.3f" % (half)
-threequarter = "%.3f" % (threequarter)
-maximum = "%.3f" % (maximum)
+quarter = "%.3f" % quarter
+half = "%.3f" % half
+threequarter = "%.3f" % threequarter
+maximum = "%.3f" % maximum
 
 # Draw outline of bar graph
 x1 = 1200
@@ -220,7 +229,7 @@ img.paste(lrotatedlabelimg, (1360, 350))
 
 # Display and save the image
 img.show()
-# img.save("/Users/marykaldor/accdisk/fortran/broken-plaw.png")
+# img.save("/Users/marykaldor/accdisk/fortran/spiral.png")
 
 '''
 Tinting matrix for certain RGB values
