@@ -1,54 +1,24 @@
+# Broken power law
+# B1 = (R/Rmin)^-q1
+# B2 = A(R/Rmin)^-q2
+# At some Rb they will match (R=Rb, B1=B2)
+'''
+B1 = B2 = (Rb/Rmin)^-q1 = A(Rb/Rmin)^-q2
+[(Rb/Rmin)^-q1]/[(Rb/Rmin)^-q2] = A
+A = (Rb/Rmin)^(-q1--q2)
+'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 import math
-
-parameters = ["XI1", "XI2", "XISPIN", "XISPOUT"]
-parvaluesi = []
-parvaluesf = []
-j = 0
-k = len(parameters) - 1
-
-f = open("/Users/marykaldor/accdisk/fortran/" + "parfile.dat", "r")
-while j < k:
-    for line in f:
-        if line[0] == "#":
-            pass
-        else:
-            x = line.split()
-            if parameters[j] == x[1]:
-                # print("The current value of ", parameters[j], " is ", x[0])
-                if x[0] == "0":
-                    if parameters[j] == "XISPIN":
-                        xispin = xi1
-                    if parameters[j] == "XISPOUT":
-                        xispout = xi2
-                else:
-                    if parameters[j] == "XI1":
-                        xi1 = x[0]
-                    if parameters[j] == "XI2":
-                        xi2 = x[0]
-                    if parameters[j] == "XISPIN":
-                        xispin = x[0]
-                    if parameters[j] == "XISPOUT":
-                        xispout = x[0]
-                parvaluesi.append(x[0])
-                if parameters[j] == parameters[-1]:
-                    pass
-                else:
-                    j += 1
-
-f.close()
-
-parvaluesf.append(xispin)
-parvaluesf.append(xispout)
 
 
 def cart2pol(x, y, xcenter, ycenter):
     # Converts cartesian coordinates to polar coordinates
     # r is in units of x and y
     # theta is in radians
-    r = np.sqrt((x - xcenter) ** 2 + (y - ycenter) ** 2)
+    r = (np.sqrt((x - xcenter) ** 2 + (y - ycenter) ** 2)) / rmin
     theta = np.arctan(y / x)
     return r, theta
 
@@ -61,10 +31,19 @@ def pol2cart(r, theta):
     return x, y
 
 
-def rrange(x, y, xcenter, ycenter):
+def rrangein(x, y, xcenter, ycenter):
     # Checks if some values of x and y are within a certain radius range
     # Radius range is determined by rmin and rmax above
-    if rmin < cart2pol(x, y, xcenter, ycenter)[0] < rmax:
+    if 1 < cart2pol(x, y, xcenter, ycenter)[0] < (rb / rmin) + 1:
+        return True
+    else:
+        return False
+
+
+def rrangeout(x, y, xcenter, ycenter):
+    # Checks if some values of x and y are within a certain radius range
+    # Radius range is determined by rmin and rmax above
+    if rb / rmin < cart2pol(x, y, xcenter, ycenter)[0] < rmax / rmin:
         return True
     else:
         return False
@@ -74,30 +53,38 @@ def rrange(x, y, xcenter, ycenter):
 # Calculate values of radial gradient
 normlistin = []
 normlistout = []
-rmin = (int(parvaluesf[0])/int(parvaluesf[1]))*500
-rmax = (int(parvaluesf[1])/int(parvaluesf[1]))*500
+values = []
 im = Image.new("RGB", (1500, 1000), "black")
-rgb_im = im.convert("RGB")
+rgb_im = im.convert('RGB')
 [xs, ys] = rgb_im.size
+rmin = 10
+rmax = 500
+rb = 250
 for x in range(1, xs):
     for y in range(1, ys):
-        if rrange(x, y, xs/3, ys/2):
-            normlistin.append(math.log(((cart2pol(x, y, xs/3, ys/2)[0]) ** 2), 10))
+        if rrangein(x, y, xs / 3, ys / 2):
+            # Linear
+            normlistin.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 1)
+            # Log
+            # normlistin.append(math.log((cart2pol(x, y, xs / 3, ys / 2)[0] ** 1), 10))
+        if rrangeout(x, y, xs / 3, ys / 2):
+            # This one has an extra factor at the beginning to make sure that the two are equal at Rb
+            # Linear
+            normlistin.append((((rb / rmin) ** 0.5) * (cart2pol(x, y, xs / 3, ys / 2)[0] ** 0.5)))
+            # Log
+            # normlistin.append(math.log((((rb / rmin) ** 0.5) * (cart2pol(x, y, xs / 3, ys / 2)[0] ** 0.5)), 10))
+
+print("max normlistin", max(normlistin))
+print("min normlistin", min(normlistin))
 
 # Normalize the values of the radial gradient
 maximum = max(normlistin)
 for n in normlistin:
-    n = n/maximum
+    n = n / maximum
     normlistout.append(n)
 
-
-'''
-# normlistout = 255 * (1.0 - normlistout)
-normlistout.resize((500, 500))
-img = Image.fromarray(normlistout.astype(np.uint8), mode='L')
-# img = img.resize((140, 140))
-img.show()
-'''
+print("max normlistout", max(normlistout))
+print("min normlistout", min(normlistout))
 
 # Scales the normalized list to the range of the grayscale (0-255)
 tally = 0
@@ -108,38 +95,56 @@ draw = ImageDraw.Draw(img)
 [xs, ys] = rgb_im.size
 for x in range(1, xs):
     for y in range(1, ys):
-        if rrange(x, y, xs/3, ys/2) and tally < len(normlistout):
-            value = round(normlistout[tally]*255)
+        if rrangein(x, y, xs / 3, ys / 2) and tally < len(normlistout):
+            value = round(normlistout[tally] * 255)
             tally += 1
             values.append(value)
-        else:
+            img.putpixel((x, y), value)
+        if rrangeout(x, y, xs / 3, ys / 2) and tally < len(normlistout):
+            value = round(normlistout[tally] * 255)
+            tally += 1
+            values.append(value)
+            img.putpixel((x, y), value)
+        if rrangein(x, y, xs / 3, ys / 2) == False and rrangeout(x, y, xs / 3, ys / 2) == False:
             value = 255
-        img.putpixel((x, y), value)
+            img.putpixel((x, y), value)
+
 
 # Organizing the lists so that the indices all match up
 normlistin.sort()
 normlistout.sort()
 values.sort()
-print(normlistin[0], normlistin[-1])
+
+print(min(values))
+print(min(normlistin))
+print(max(normlistin))
 
 # Find the quarter, half, three-quarter, and maximum values of the list in order to find marker locations for bar graph
 # Calculate indices of these values to find corresponding color markers in the values list
 for item in normlistin:
-    if item < maximum/2:
+    if item < maximum / 4:
+        quarter = item
+    if item < maximum / 2:
         half = item
-    if item < 3*maximum/4:
+    if item < 3 * maximum / 4:
         threequarter = item
 
-print(half, threequarter, maximum)
-# qind = normlistin.index(quarter)
+# print(quarter, half, threequarter, maximum)
+logq = "%.3f" % (math.log(quarter, 10))
+logh = "%.3f" % (math.log(half, 10))
+logtq = "%.3f" % (math.log(threequarter, 10))
+logm = "%.3f" % (math.log(maximum, 10))
+qind = normlistin.index(quarter)
 hind = normlistin.index(half)
 tqind = normlistin.index(threequarter)
 mind = normlistin.index(maximum)
-print(hind, tqind, mind)
-print(values[hind], values[tqind], values[mind])
-half = "%.3f"%(half)
-threequarter = "%.3f"%(threequarter)
-maximum = "%.3f"%(maximum)
+# print(qind, hind, tqind, mind)
+# print(values[qind], values[hind], values[tqind], values[mind])
+print("values", values[0], values[10], values[100], values[1000], values[10000])
+quarter = "%.3f" % (quarter)
+half = "%.3f" % (half)
+threequarter = "%.3f" % (threequarter)
+maximum = "%.3f" % (maximum)
 
 # Draw outline of bar graph
 x1 = 1200
@@ -155,11 +160,9 @@ height = y2 - y1
 x = 0
 while x < len(values) and ycoord < 900:
     draw.line([x1 + 1, ycoord, x2 - 1, ycoord], fill=values[x], width=1)
-    '''
-        if x < qind:
+    if x < qind:
         xq = x
         ycoordq = 1000 - ycoord
-    '''
     if x < hind:
         xh = x
         ycoordh = 1000 - ycoord
@@ -169,57 +172,45 @@ while x < len(values) and ycoord < 900:
     if x < mind:
         xm = x
         ycoordm = 1000 - ycoord
-    x += round(len(values)/height)
+    x += round(len(values) / height)
     ycoord += 1
 
+# print(xq, xh, xtq, xm)
+# print(ycoordq, ycoordh, ycoordtq, ycoordm)
+
 draw.line([1020, 0, 1020, 1000], fill=0, width=1)
+draw.line([x1 - 3, ycoordq, x2 + 3, ycoordq], fill=0, width=2)
 draw.line([x1 - 3, ycoordh, x2 + 3, ycoordh], fill=0, width=2)
 draw.line([x1 - 3, ycoordtq, x2 + 3, ycoordtq], fill=0, width=2)
 # Create font style and write labels in locations specified by pixel number
 myfont = ImageFont.truetype("Times New Roman", 20)
-draw.text((1195, 50), "L = log(B)", font=myfont, fill=0)
-draw.text((1190, ycoordh), half, font=myfont, fill=0, anchor="ra")
+draw.text((1195, 50), "B and L", font=myfont, fill=0)
+draw.text((1190, ycoordq), quarter, font=myfont, fill=0, anchor="rm")
+draw.text((1190, ycoordh), half, font=myfont, fill=0, anchor="rm")
 draw.text((1190, ycoordtq), threequarter, font=myfont, fill=0, anchor="rm")
 draw.text((1190, ycoordm), maximum, font=myfont, fill=0, anchor="rm")
+draw.text((1260, ycoordq), logq, font=myfont, fill=0, anchor="lm")
+draw.text((1260, ycoordh), logh, font=myfont, fill=0, anchor="lm")
+draw.text((1260, ycoordtq), logtq, font=myfont, fill=0, anchor="lm")
+draw.text((1260, ycoordm), logm, font=myfont, fill=0, anchor="lm")
 
 # Create vertical bar graph labels
+blabelimg = Image.new("L", (180, 40), "white")
 llabelimg = Image.new("L", (250, 40), "white")
+blabeldraw = ImageDraw.Draw(blabelimg)
 llabeldraw = ImageDraw.Draw(llabelimg)
+blabeldraw.text((10, 20), "B (square pixels)", font=myfont, fill=0, anchor="lm")
 llabeldraw.text((10, 20), "L = log(B) (square pixels)", font=myfont, fill=0, anchor="lm")
+brotatedlabelimg = blabelimg.rotate(90.0, expand=1)
 lrotatedlabelimg = llabelimg.rotate(90.0, expand=1)
 
 # Paste new vertical labels into original image
-img.paste(lrotatedlabelimg, (1040, 400))
+img.paste(brotatedlabelimg, (1040, 400))
+img.paste(lrotatedlabelimg, (1360, 350))
 
 # Display and save the image
 img.show()
-img.save("/Users/marykaldor/accdisk/fortran/logplot-gray.png")
-print("Done")
-
-'''
-Start with logarithmic scale, normalize it based off highest value, then go to 0-1 grayscale value
-'''
-
-
-'''
-r = 0.5
-# np.arange(0, rmax, 0.1*rmax)
-theta = np.arange(0, (2 * np.pi), 0.01)
-print(theta)
-
-for i in theta:
-    plt.polar(i, r, "g")
-
-fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-ax.plot(theta, r)
-ax.set_rmax(2)
-# ax.set_rticks([0.5, 1, 1.5, 2])  # Fewer radial ticks
-# ax.set_rlabel_position(-22.5)  # Move radial labels away from plotted line
-# ax.grid(True)
-
-# ax.set_title("A line plot on a polar axis", va='bottom')
-plt.show()
-'''
+# img.save("/Users/marykaldor/accdisk/fortran/broken-plaw.png")
 
 '''
 Tinting matrix for certain RGB values

@@ -70,7 +70,7 @@ def rrange(x, y, xcenter, ycenter):
         return False
 
 
-# This plots in a relatively choppy way - the discrete values are very obvious, but it is the only way to get line 88 to
+# This plots in a relatively choppy way - the discrete values are very obvious, but it is the only way to get line 89 to
 # not produce an error with decimal value inputs.
 rmin = (int(parvaluesf[0])/int(parvaluesf[1]))*500
 rmax = (int(parvaluesf[1])/int(parvaluesf[1]))*500
