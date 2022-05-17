@@ -13,6 +13,51 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 import math
 
+parameters = ["XI1", "XI2", "PITCH", "WIDTH", "XISPIN", "XISPOUT"]
+parvaluesi = []
+parvaluesf = []
+j = 0
+k = len(parameters) - 1
+
+f = open("/Users/marykaldor/accdisk/fortran/" + "parfile.dat", "r")
+while j < k:
+    for line in f:
+        if line[0] == "#":
+            pass
+        else:
+            x = line.split()
+            if parameters[j] == x[1]:
+                # print("The current value of ", parameters[j], " is ", x[0])
+                if x[0] == "0":
+                    if parameters[j] == "XISPIN":
+                        xispin = xi1
+                    if parameters[j] == "XISPOUT":
+                        xispout = xi2
+                else:
+                    if parameters[j] == "XI1":
+                        xi1 = x[0]
+                    if parameters[j] == "XI2":
+                        xi2 = x[0]
+                    if parameters[j] == "XISPIN":
+                        xispin = x[0]
+                    if parameters[j] == "XISPOUT":
+                        xispout = x[0]
+                parvaluesi.append(x[0])
+                if parameters[j] == parameters[-1]:
+                    pass
+                else:
+                    j += 1
+
+f.close()
+
+parvaluesf.append(xispin)
+parvaluesf.append(xispout)
+parvaluesf.append(parvaluesi[2])
+parvaluesf.append(parvaluesi[3])
+
+print(parvaluesi)
+print(parvaluesf)
+
 
 def cart2pol(x, y, xcenter, ycenter):
     # Converts cartesian coordinates to polar coordinates
@@ -52,25 +97,29 @@ def rrangeout(x, y, xcenter, ycenter):
 # Create new image to build on
 # Calculate values of radial gradient
 normlistinplaw = []
+normlistin = []
 normlistout = []
 values = []
 im = Image.new("RGB", (1500, 1000), "black")
 rgb_im = im.convert('RGB')
 [xs, ys] = rgb_im.size
-rmin = 10
-rmax = 500
+rmin = int(xispin)/10
+rmax = int(xispout)/10
 rb = 250
+
 for x in range(1, xs):
     for y in range(1, ys):
         if rrangein(x, y, xs / 3, ys / 2):
             # Linear
-            normlistinplaw.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 1)
+            normlistinplaw.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 0)
+            # normlistinplaw.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 1)
             # Log
             # normlistin.append(math.log((cart2pol(x, y, xs / 3, ys / 2)[0] ** 1), 10))
         if rrangeout(x, y, xs / 3, ys / 2):
             # This one has an extra factor at the beginning to make sure that the two are equal at Rb
             # Linear
-            normlistinplaw.append((((rb / rmin) ** 0.5) * (cart2pol(x, y, xs / 3, ys / 2)[0] ** 0.5)))
+            normlistinplaw.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 0)
+            # normlistinplaw.append((((rb / rmin) ** 0.5) * (cart2pol(x, y, xs / 3, ys / 2)[0] ** 0.5)))
             # Log
             # normlistin.append(math.log((((rb / rmin) ** 0.5) * (cart2pol(x, y, xs / 3, ys / 2)[0] ** 0.5)), 10))
 
@@ -85,14 +134,27 @@ for x in range(1, xs):
 
 
 def e(constant, xi, phi, phi0, xisp, p, a, delta):
-    psi0 = phi0 + math.log(xi / xisp, 10) / math.tan(p)
-    constant*(1 + (a/2) * math.e ** (-4 * math.log(2, math.e) * ((phi - psi0) ** 2) / (delta ** 2)) + (a / 2) * math.e
+    psi0 = phi0 + math.log((xi / xisp)/rmin, 10) / math.tan(p)
+    final = constant/(1 + (a/2) * math.e ** (-4 * math.log(2, math.e) * ((phi - psi0) ** 2) / (delta ** 2)) + (a / 2) * math.e
               ** (-4 * math.log(2, math.e) * (((2*math.pi)-phi+psi0)**2) / (delta**2)))
+    return final
 
 
+tally = 0
 for x in range(1, xs):
     for y in range(1, ys):
         if rrangein(x, y, xs / 3, ys / 2):
+            normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
+            ys / 2)[1])*180/math.pi, 60, float(xispin)/rmin, -10, 3, 10))
+            # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
+            # ys / 2)[1])*180/math.pi, 0, float(xispin)/rmin, float(parvaluesf[2]), 3, float(parvaluesf[3])))
+            tally += 1
+        if rrangeout(x, y, xs / 3, ys / 2):
+            normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
+            ys / 2)[1])*180/math.pi, 60, float(xispin)/rmin, -10, 3, 10))
+            # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
+            # ys / 2)[1]) * 180 / math.pi, 0, float(xispin) / rmin, float(parvaluesf[2]), 3, float(parvaluesf[3])))
+            tally += 1
 # Figure out how to have spiral apply in the same way across this border - maybe I don't even need one?
 
 
@@ -140,6 +202,7 @@ print(max(normlistin))
 
 # Find the quarter, half, three-quarter, and maximum values of the list in order to find marker locations for bar graph
 # Calculate indices of these values to find corresponding color markers in the values list
+'''
 for item in normlistin:
     if item < maximum / 4:
         quarter = item
@@ -164,6 +227,7 @@ quarter = "%.3f" % quarter
 half = "%.3f" % half
 threequarter = "%.3f" % threequarter
 maximum = "%.3f" % maximum
+'''
 
 # Draw outline of bar graph
 x1 = 1200
@@ -176,6 +240,7 @@ height = y2 - y1
 
 # Grabbing enough values to perfectly fill the bar graph, drawing lines of those values across the bar graph outline
 # Creates a linear gradient that aligns with the radial gradient plotted next to it
+'''
 x = 0
 while x < len(values) and ycoord < 900:
     draw.line([x1 + 1, ycoord, x2 - 1, ycoord], fill=values[x], width=1)
@@ -193,17 +258,21 @@ while x < len(values) and ycoord < 900:
         ycoordm = 1000 - ycoord
     x += round(len(values) / height)
     ycoord += 1
+'''
 
 # print(xq, xh, xtq, xm)
 # print(ycoordq, ycoordh, ycoordtq, ycoordm)
 
 draw.line([1020, 0, 1020, 1000], fill=0, width=1)
+'''
 draw.line([x1 - 3, ycoordq, x2 + 3, ycoordq], fill=0, width=2)
 draw.line([x1 - 3, ycoordh, x2 + 3, ycoordh], fill=0, width=2)
 draw.line([x1 - 3, ycoordtq, x2 + 3, ycoordtq], fill=0, width=2)
+'''
 # Create font style and write labels in locations specified by pixel number
 myfont = ImageFont.truetype("Times New Roman", 20)
 draw.text((1195, 50), "B and L", font=myfont, fill=0)
+'''
 draw.text((1190, ycoordq), quarter, font=myfont, fill=0, anchor="rm")
 draw.text((1190, ycoordh), half, font=myfont, fill=0, anchor="rm")
 draw.text((1190, ycoordtq), threequarter, font=myfont, fill=0, anchor="rm")
@@ -212,6 +281,7 @@ draw.text((1260, ycoordq), logq, font=myfont, fill=0, anchor="lm")
 draw.text((1260, ycoordh), logh, font=myfont, fill=0, anchor="lm")
 draw.text((1260, ycoordtq), logtq, font=myfont, fill=0, anchor="lm")
 draw.text((1260, ycoordm), logm, font=myfont, fill=0, anchor="lm")
+'''
 
 # Create vertical bar graph labels
 blabelimg = Image.new("L", (180, 40), "white")
@@ -230,6 +300,7 @@ img.paste(lrotatedlabelimg, (1360, 350))
 # Display and save the image
 img.show()
 # img.save("/Users/marykaldor/accdisk/fortran/spiral.png")
+
 
 '''
 Tinting matrix for certain RGB values
@@ -283,4 +354,3 @@ plt.figure(figsize=(7, 7))
 plt.imshow(img, cmap='gray')
 plt.show()
 '''
-
