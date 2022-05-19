@@ -1,17 +1,21 @@
 # Broken power law
-# B1 = (R/Rmin)^-q1
-# B2 = A(R/Rmin)^-q2
-# At some Rb they will match (R=Rb, B1=B2)
+# B1 = (R/ximin)^-q1
+# B2 = A(R/ximin)^-q2
+# At some xi_b they will match (R=xi_b, B1=B2)
 """
-B1 = B2 = (Rb/Rmin)^-q1 = A(Rb/Rmin)^-q2
-[(Rb/Rmin)^-q1]/[(Rb/Rmin)^-q2] = A
-A = (Rb/Rmin)^(-q1--q2)
+B1 = B2 = (xi_b/ximin)^-q1 = A(xi_b/ximin)^-q2
+[(xi_b/ximin)^-q1]/[(xi_b/ximin)^-q2] = A
+A = (xi_b/ximin)^(-q1--q2)
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 import math
+import timeit
+
+start = timeit.default_timer()
+
 
 parameters = ["XI1", "XI2", "PITCH", "WIDTH", "XISPIN", "XISPOUT"]
 parvaluesi = []
@@ -55,17 +59,24 @@ parvaluesf.append(xispout)
 parvaluesf.append(parvaluesi[2])
 parvaluesf.append(parvaluesi[3])
 
-print(parvaluesi)
-print(parvaluesf)
-
 
 def cart2pol(x, y, xcenter, ycenter):
     # Converts cartesian coordinates to polar coordinates
     # r is in units of x and y
     # theta is in radians
-    r = (np.sqrt((x - xcenter) ** 2 + (y - ycenter) ** 2)) / rmin
-    theta = np.arctan(y / x)
-    return r, theta
+    xi = (np.sqrt((x - xcenter) ** 2 + (y - ycenter) ** 2))
+    if x != xcenter:
+        theta = np.arctan((ycenter - y) / (x - xcenter))
+        if x < xcenter:
+            theta += math.pi
+    if x == xcenter:
+        if y > ycenter:
+            theta = 3*math.pi/2
+        if y < ycenter:
+            theta = math.pi/2
+        if y == ycenter:
+            theta = 0
+    return xi, theta
 
 
 def pol2cart(r, theta):
@@ -78,8 +89,8 @@ def pol2cart(r, theta):
 
 def rrangein(x, y, xcenter, ycenter):
     # Checks if some values of x and y are within a certain radius range
-    # Radius range is determined by rmin and rmax above
-    if 1 < cart2pol(x, y, xcenter, ycenter)[0] < (rb / rmin) + 1:
+    # Radius range is determined by ximin and ximax above
+    if ximin < cart2pol(x, y, xcenter, ycenter)[0] < xi_b + 1:
         return True
     else:
         return False
@@ -87,8 +98,8 @@ def rrangein(x, y, xcenter, ycenter):
 
 def rrangeout(x, y, xcenter, ycenter):
     # Checks if some values of x and y are within a certain radius range
-    # Radius range is determined by rmin and rmax above
-    if rb / rmin < cart2pol(x, y, xcenter, ycenter)[0] < rmax / rmin:
+    # Radius range is determined by ximin and ximax above
+    if xi_b < cart2pol(x, y, xcenter, ycenter)[0] < ximax:
         return True
     else:
         return False
@@ -103,29 +114,31 @@ values = []
 im = Image.new("RGB", (1500, 1000), "black")
 rgb_im = im.convert('RGB')
 [xs, ys] = rgb_im.size
-rmin = int(xispin)/10
-rmax = int(xispout)/10
-rb = 250
+ximin = int(xispin) / 10
+ximax = int(xispout) / 10
+xi_b = 250
 
 for x in range(1, xs):
     for y in range(1, ys):
         if rrangein(x, y, xs / 3, ys / 2):
             # Linear
-            normlistinplaw.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 0)
-            # normlistinplaw.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 1)
+            # normlistinplaw.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 0)
+            normlistinplaw.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 2)
             # Log
             # normlistin.append(math.log((cart2pol(x, y, xs / 3, ys / 2)[0] ** 1), 10))
         if rrangeout(x, y, xs / 3, ys / 2):
-            # This one has an extra factor at the beginning to make sure that the two are equal at Rb
+            # This one has an extra factor at the beginning to make sure that the two are equal at xi_b
             # Linear
-            normlistinplaw.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 0)
-            # normlistinplaw.append((((rb / rmin) ** 0.5) * (cart2pol(x, y, xs / 3, ys / 2)[0] ** 0.5)))
+            # normlistinplaw.append(cart2pol(x, y, xs / 3, ys / 2)[0] ** 0)
+            normlistinplaw.append(((xi_b ** 1) * (cart2pol(x, y, xs / 3, ys / 2)[0] ** 1)))
             # Log
-            # normlistin.append(math.log((((rb / rmin) ** 0.5) * (cart2pol(x, y, xs / 3, ys / 2)[0] ** 0.5)), 10))
+            # normlistin.append(math.log((((xi_b / ximin) ** 0.5) * (cart2pol(x, y, xs / 3, ys / 2)[0] ** 0.5)), 10))
+
 
 # General equation for spiral formation and location
 # phi0 = 0, azimuth at xi = xi2 (location of spiral at outer radius)
-# p goes from 0 to -90, pitch angle, controls how many times the spiral goes around, sign of p will switch way that spiral spins
+# p goes from 0 to -90, pitch angle, controls how many times the spiral goes around, sign of p will switch way that
+# spiral spins
 # xisp = ximin
 # A = contrast, of order a few (2, 3?)
 # set e0 = 1 and xi = (xi/ximin) (I already do this)
@@ -133,10 +146,19 @@ for x in range(1, xs):
 # constant = e0*xi**-q = what I already calculate
 
 
-def e(constant, xi, phi, phi0, xisp, p, a, delta):
-    psi0 = phi0 + math.log((xi / xisp)/rmin, 10) / math.tan(p)
-    final = constant/(1 + (a/2) * math.e ** (-4 * math.log(2, math.e) * ((phi - psi0) ** 2) / (delta ** 2)) + (a / 2) * math.e
-              ** (-4 * math.log(2, math.e) * (((2*math.pi)-phi+psi0)**2) / (delta**2)))
+def e(constant, xi, phi, phi0, p, a, delta):
+    # Convert p from degrees to radians to get properly-calculated tangent
+    p = p*math.pi/180
+    if p > 3*math.pi/2:
+        p += math.pi
+    # phi = phi*math.pi/180
+    phi0 = phi0*math.pi/180
+    delta = delta*math.pi/180
+    # Define and calculate psi0 constant
+    psi0 = phi0 + math.log(xi/ximin, 10) / math.tan(p)
+    final = constant / (
+            1 + (a / 2) * math.e ** (-4 * math.log(2, math.e) * ((phi - psi0) ** 2) / (delta ** 2)) + (a / 2) *
+            math.e ** (-4 * math.log(2, math.e) * (((2 * math.pi) - phi + psi0) ** 2) / (delta ** 2)))
     return final
 
 
@@ -144,16 +166,16 @@ tally = 0
 for x in range(1, xs):
     for y in range(1, ys):
         if rrangein(x, y, xs / 3, ys / 2):
-            normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
-            ys / 2)[1])*180/math.pi, 60, float(xispin)/rmin, -10, 3, 10))
             # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
-            # ys / 2)[1])*180/math.pi, 0, float(xispin)/rmin, float(parvaluesf[2]), 3, float(parvaluesf[3])))
+             # ys / 2)[1]) * 180 / math.pi, 20, 10, 3, 10))
+            normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
+            ys / 2)[1]), 190, float(parvaluesf[2]), 3, float(parvaluesf[3])))
             tally += 1
         if rrangeout(x, y, xs / 3, ys / 2):
-            normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
-            ys / 2)[1])*180/math.pi, 60, float(xispin)/rmin, -10, 3, 10))
             # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
-            # ys / 2)[1]) * 180 / math.pi, 0, float(xispin) / rmin, float(parvaluesf[2]), 3, float(parvaluesf[3])))
+            #ys / 2)[1]) * 180 / math.pi, 20, 10, 3, 10))
+            normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
+            ys / 2)[1]), 190, float(parvaluesf[2]), 3, float(parvaluesf[3])))
             tally += 1
 # Figure out how to have spiral apply in the same way across this border - maybe I don't even need one?
 
@@ -190,7 +212,6 @@ for x in range(1, xs):
             value = 255
             img.putpixel((x, y), value)
 
-
 # Organizing the lists so that the indices all match up
 normlistin.sort()
 normlistout.sort()
@@ -202,7 +223,6 @@ print(max(normlistin))
 
 # Find the quarter, half, three-quarter, and maximum values of the list in order to find marker locations for bar graph
 # Calculate indices of these values to find corresponding color markers in the values list
-'''
 for item in normlistin:
     if item < maximum / 4:
         quarter = item
@@ -227,7 +247,6 @@ quarter = "%.3f" % quarter
 half = "%.3f" % half
 threequarter = "%.3f" % threequarter
 maximum = "%.3f" % maximum
-'''
 
 # Draw outline of bar graph
 x1 = 1200
@@ -240,7 +259,6 @@ height = y2 - y1
 
 # Grabbing enough values to perfectly fill the bar graph, drawing lines of those values across the bar graph outline
 # Creates a linear gradient that aligns with the radial gradient plotted next to it
-'''
 x = 0
 while x < len(values) and ycoord < 900:
     draw.line([x1 + 1, ycoord, x2 - 1, ycoord], fill=values[x], width=1)
@@ -258,21 +276,18 @@ while x < len(values) and ycoord < 900:
         ycoordm = 1000 - ycoord
     x += round(len(values) / height)
     ycoord += 1
-'''
 
 # print(xq, xh, xtq, xm)
 # print(ycoordq, ycoordh, ycoordtq, ycoordm)
 
 draw.line([1020, 0, 1020, 1000], fill=0, width=1)
-'''
 draw.line([x1 - 3, ycoordq, x2 + 3, ycoordq], fill=0, width=2)
 draw.line([x1 - 3, ycoordh, x2 + 3, ycoordh], fill=0, width=2)
 draw.line([x1 - 3, ycoordtq, x2 + 3, ycoordtq], fill=0, width=2)
-'''
+
 # Create font style and write labels in locations specified by pixel number
 myfont = ImageFont.truetype("Times New Roman", 20)
 draw.text((1195, 50), "B and L", font=myfont, fill=0)
-'''
 draw.text((1190, ycoordq), quarter, font=myfont, fill=0, anchor="rm")
 draw.text((1190, ycoordh), half, font=myfont, fill=0, anchor="rm")
 draw.text((1190, ycoordtq), threequarter, font=myfont, fill=0, anchor="rm")
@@ -281,7 +296,6 @@ draw.text((1260, ycoordq), logq, font=myfont, fill=0, anchor="lm")
 draw.text((1260, ycoordh), logh, font=myfont, fill=0, anchor="lm")
 draw.text((1260, ycoordtq), logtq, font=myfont, fill=0, anchor="lm")
 draw.text((1260, ycoordm), logm, font=myfont, fill=0, anchor="lm")
-'''
 
 # Create vertical bar graph labels
 blabelimg = Image.new("L", (180, 40), "white")
@@ -299,8 +313,10 @@ img.paste(lrotatedlabelimg, (1360, 350))
 
 # Display and save the image
 img.show()
-# img.save("/Users/marykaldor/accdisk/fortran/spiral.png")
+img.save("/Users/marykaldor/accdisk/fortran/spiral.png")
 
+stop = timeit.default_timer()
+print('Time: ', stop - start, "s")
 
 '''
 Tinting matrix for certain RGB values
