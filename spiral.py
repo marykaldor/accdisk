@@ -66,17 +66,17 @@ def cart2pol(x, y, xcenter, ycenter):
     # theta is in radians
     xi = (np.sqrt((x - xcenter) ** 2 + (y - ycenter) ** 2))
     if x != xcenter:
-        theta = np.arctan((ycenter - y) / (x - xcenter))
+        phi = np.arctan((ycenter - y) / (x - xcenter))
         if x < xcenter:
-            theta += math.pi
+            phi += math.pi
     if x == xcenter:
         if y > ycenter:
-            theta = 3*math.pi/2
+            phi = 3*math.pi/2
         if y < ycenter:
-            theta = math.pi/2
+            phi = math.pi/2
         if y == ycenter:
-            theta = 0
-    return xi, theta
+            phi = 0
+    return xi, phi
 
 
 def pol2cart(r, theta):
@@ -169,13 +169,13 @@ for x in range(1, xs):
             # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
              # ys / 2)[1]) * 180 / math.pi, 20, 10, 3, 10))
             normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
-            ys / 2)[1]), 190, float(parvaluesf[2]), 3, float(parvaluesf[3])))
+            ys / 2)[1]), -90, float(parvaluesf[2]), 100, float(parvaluesf[3])))
             tally += 1
         if rrangeout(x, y, xs / 3, ys / 2):
             # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
             #ys / 2)[1]) * 180 / math.pi, 20, 10, 3, 10))
             normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3, ys / 2)[0], (cart2pol(x, y, xs / 3,
-            ys / 2)[1]), 190, float(parvaluesf[2]), 3, float(parvaluesf[3])))
+            ys / 2)[1]), -90, float(parvaluesf[2]), 100, float(parvaluesf[3])))
             tally += 1
 # Figure out how to have spiral apply in the same way across this border - maybe I don't even need one?
 
