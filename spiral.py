@@ -8,14 +8,13 @@ B1 = B2 = (xi_b/ximin)^-q1 = A(xi_b/ximin)^-q2
 A = (xi_b/ximin)^(-q1--q2)
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-from PIL import Image, ImageDraw, ImageFont
 import math
 import timeit
 
-start = timeit.default_timer()
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
+start = timeit.default_timer()
 
 parameters = ["XI1", "XI2", "AMP", "AOBS", "PITCH", "WIDTH", "XISPIN", "XISPOUT"]
 parvaluesi = []
@@ -73,9 +72,9 @@ def cart2pol(x, y, xcenter, ycenter):
             phi += math.pi
     if x == xcenter:
         if y > ycenter:
-            phi = 3*math.pi/2
+            phi = 3 * math.pi / 2
         if y < ycenter:
-            phi = math.pi/2
+            phi = math.pi / 2
         if y == ycenter:
             phi = 0
     return xi, phi
@@ -90,8 +89,7 @@ def pol2cart(r, theta):
 
 
 def rrangein(x, y, xcenter, ycenter):
-    # Checks if some values of x and y are within a certain radius range
-    # Radius range is determined by ximin and ximax above
+    # Checks if some values of x and y are within a certain radius range determined by ximin and ximax above
     # Inside of power law
     if ximin < cart2pol(x, y, xcenter, ycenter)[0] < xi_b + 1:
         return True
@@ -100,14 +98,19 @@ def rrangein(x, y, xcenter, ycenter):
 
 
 def rrangeout(x, y, xcenter, ycenter):
-    # Checks if some values of x and y are within a certain radius range
-    # Radius range is determined by ximin and ximax above
+    # Checks if some values of x and y are within a certain radius range determined by ximin and ximax above
     # Outside of power law
     if xi_b < cart2pol(x, y, xcenter, ycenter)[0] < ximax:
         return True
     else:
         return False
 
+
+def xytransf(x, y):
+    # Create secondary xy coordinate system
+    newx = x - xbase
+    newy = ys - y - ybase
+    return newx, newy
 
 
 # Create new image to build on
@@ -119,6 +122,8 @@ values = []
 im = Image.new("RGB", (1800, 1400), "black")
 rgb_im = im.convert('RGB')
 [xs, ys] = rgb_im.size
+xbase = 100
+ybase = 100
 ximin = int(xispin) / 10
 ximax = int(xispout) / 10
 xi_b = 250
@@ -136,8 +141,8 @@ for x in range(1, xs):
             # Linear
             # normlistinplaw.append(cart2pol(x, y, xs / 3 + 100, ys / 2)[0] ** 0)
             normlistinplaw.append(((xi_b ** 1) * (cart2pol(x, y, xs / 3 + 100, ys / 2)[0] ** 1)))
-            # Log
-            # normlistin.append(math.log((((xi_b / ximin) ** 0.5) * (cart2pol(x, y, xs / 3 + 100, ys / 2)[0] ** 0.5)), 10))
+            # Log normlistin.append(math.log((((xi_b / ximin) ** 0.5) * (cart2pol(x, y, xs / 3 + 100, ys / 2)[0] **
+            # 0.5)), 10))
 
 
 # General equation for spiral formation and location
@@ -153,34 +158,45 @@ for x in range(1, xs):
 
 def e(constant, xi, phi, phi0, p, a, delta):
     # Convert p from degrees to radians to get properly-calculated tangent
-    p = p*math.pi/180
-    if p > 3*math.pi/2:
+    p = p * math.pi / 180
+    if p > 3 * math.pi / 2:
         p += math.pi
     # phi = phi*math.pi/180
-    phi0 = phi0*math.pi/180
-    delta = delta*math.pi/180
+    phi0 = phi0 * math.pi / 180
+    delta = delta * math.pi / 180
     # Define and calculate psi0 constant
-    psi0 = phi0 + math.log(xi/ximin, 10) / math.tan(p)
+    psi0 = phi0 + math.log(xi / ximin, 10) / math.tan(p)
     final = constant / (
             1 + (a / 2) * math.e ** (-4 * math.log(2, math.e) * ((phi - psi0) ** 2) / (delta ** 2)) + (a / 2) *
             math.e ** (-4 * math.log(2, math.e) * (((2 * math.pi) - phi + psi0) ** 2) / (delta ** 2)))
     return final
 
-
+newxlist =[]
+newylist = []
+newxylisttest =[]
 tally = 0
 for x in range(1, xs):
     for y in range(1, ys):
+        if xbase <= x < 1020 and ybase < y <= ys - ybase:
+            newxlist.append(xytransf(x,y)[0])
+            newylist.append(xytransf(x, y)[1])
+            if xytransf(x, y)[0] == 300 and xytransf(x, y)[1] == 400:
+                newxylisttest.append(xytransf(x, y))
         if rrangein(x, y, xs / 3 + 100, ys / 2):
-            # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y, xs / 3 + 100,
-             # ys / 2)[1]) * 180 / math.pi, 20, 10, 3, 10))
-            normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y, xs / 3 + 100,
-            ys / 2)[1]), float(parvaluesf[3]), float(parvaluesf[4]), float(parvaluesf[2]), float(parvaluesf[5])))
+            # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y,
+            # xs / 3 + 100, ys / 2)[1]) * 180 / math.pi, 20, 10, 3, 10))
+            normlistin.append(
+                e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y, xs / 3 + 100,
+                                                                                            ys / 2)[1]),
+                  float(parvaluesf[3]), float(parvaluesf[4]), float(parvaluesf[2]), float(parvaluesf[5])))
             tally += 1
         if rrangeout(x, y, xs / 3 + 100, ys / 2):
-            # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y, xs / 3 + 100,
-            #ys / 2)[1]) * 180 / math.pi, 20, 10, 3, 10))
-            normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y, xs / 3 + 100,
-            ys / 2)[1]), float(parvaluesf[3]), float(parvaluesf[4]), float(parvaluesf[2]), float(parvaluesf[5])))
+            # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y,
+            # xs / 3 + 100, ys / 2)[1]) * 180 / math.pi, 20, 10, 3, 10))
+            normlistin.append(
+                e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y, xs / 3 + 100,
+                                                                                            ys / 2)[1]),
+                  float(parvaluesf[3]), float(parvaluesf[4]), float(parvaluesf[2]), float(parvaluesf[5])))
             tally += 1
 # Figure out how to have spiral apply in the same way across this border - maybe I don't even need one?
 
@@ -320,12 +336,12 @@ brotatedlabelimg = blabelimg.rotate(90.0, expand=1)
 lrotatedlabelimg = llabelimg.rotate(90.0, expand=1)
 
 # Paste new vertical labels into original image
-img.paste(brotatedlabelimg, (x1 - 175, int((y2 - y1)/2) + 115))
-img.paste(lrotatedlabelimg, (x2 + 110, int((y2 - y1)/2) + 150))
+img.paste(brotatedlabelimg, (x1 - 175, int((y2 - y1) / 2) + 115))
+img.paste(lrotatedlabelimg, (x2 + 110, int((y2 - y1) / 2) + 150))
 
 # Create axes and labels for axes
-draw.line([100, 100, 100, 1300], fill=0, width=2)
-draw.line([100, 1300, x1 - 280, 1300], fill=0, width=2)
+draw.line([xbase, xbase, xbase, ys - ybase], fill=0, width=2)
+draw.line([xbase, ys - ybase, x1 - 280, ys - ybase], fill=0, width=2)
 xlabelimg = Image.new("L", (180, 40), "white")
 ylabelimg = Image.new("L", (180, 40), "white")
 xlabeldraw = ImageDraw.Draw(xlabelimg)
@@ -339,6 +355,8 @@ img.paste(yrotatedlabelimg, (50, 550))
 # Display and save the image
 img.show()
 img.save("/Users/marykaldor/accdisk/fortran/spiral.png")
+
+print(newxylisttest)
 
 stop = timeit.default_timer()
 print('Time: ', stop - start, "s")
