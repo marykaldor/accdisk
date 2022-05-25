@@ -108,8 +108,8 @@ def rrangeout(x, y, xcenter, ycenter):
 
 def xytransf(x, y):
     # Create secondary xy coordinate system
-    newx = x - xbase
-    newy = ys - y - ybase
+    newx = x - 700
+    newy = 700 - y
     return newx, newy
 
 
@@ -173,15 +173,14 @@ def e(constant, xi, phi, phi0, p, a, delta):
 
 newxlist =[]
 newylist = []
-newxylisttest =[]
+newxylist = []
 tally = 0
 for x in range(1, xs):
     for y in range(1, ys):
         if xbase <= x < 1020 and ybase < y <= ys - ybase:
-            newxlist.append(xytransf(x,y)[0])
+            newxlist.append(xytransf(x, y)[0])
             newylist.append(xytransf(x, y)[1])
-            if xytransf(x, y)[0] == 300 and xytransf(x, y)[1] == 400:
-                newxylisttest.append(xytransf(x, y))
+            newxylist.append(xytransf(x, y))
         if rrangein(x, y, xs / 3 + 100, ys / 2):
             # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y,
             # xs / 3 + 100, ys / 2)[1]) * 180 / math.pi, 20, 10, 3, 10))
@@ -351,12 +350,17 @@ ylabeldraw.text((10, 20), "y label", font=myfont, fill=0, anchor="lm")
 yrotatedlabelimg = ylabelimg.rotate(90.0, expand=1)
 img.paste(xlabelimg, (600, 1350))
 img.paste(yrotatedlabelimg, (50, 550))
+for item in newxylist:
+    if item == (0, 0):
+        ind = newxylist.index(item)
+        print('line 356')
+        print(newxlist[ind], newylist[ind])
+        draw.line([newxlist[ind], newylist[ind], newxlist[ind] + 10, newylist[ind]], fill=0, width=3)
 
 # Display and save the image
 img.show()
 img.save("/Users/marykaldor/accdisk/fortran/spiral.png")
 
-print(newxylisttest)
 
 stop = timeit.default_timer()
 print('Time: ', stop - start, "s")
