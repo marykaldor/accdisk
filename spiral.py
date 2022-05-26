@@ -107,10 +107,16 @@ def rrangeout(x, y, xcenter, ycenter):
 
 
 def xytransf(x, y):
-    # Create secondary xy coordinate system
+    # Create secondary xy coordinate system for reference in Cartesian plot of disk
     newx = x - 700
     newy = 700 - y
     return newx, newy
+
+def xytransfrev(x, y):
+    # Go back to original coordinates for reference in full image
+    originalx = x + 700
+    originaly = ys - y - 700
+    return originalx, originaly
 
 
 # Create new image to build on
@@ -127,6 +133,9 @@ ybase = 100
 ximin = int(xispin) / 10
 ximax = int(xispout) / 10
 xi_b = 250
+
+print(xytransf(300, 400))
+print(xytransfrev(xytransf(300, 400)[0], xytransf(300, 400)[1]))
 
 for x in range(1, xs):
     for y in range(1, ys):
@@ -171,43 +180,35 @@ def e(constant, xi, phi, phi0, p, a, delta):
             math.e ** (-4 * math.log(2, math.e) * (((2 * math.pi) - phi + psi0) ** 2) / (delta ** 2)))
     return final
 
-newxlist =[]
+newxlist = []
 newylist = []
 newxylist = []
 tally = 0
 for x in range(1, xs):
     for y in range(1, ys):
-        if xbase <= x < 1020 and ybase < y <= ys - ybase:
+        if xbase <= x <= 1300 and ybase <= y <= ys - ybase:
             newxlist.append(xytransf(x, y)[0])
             newylist.append(xytransf(x, y)[1])
             newxylist.append(xytransf(x, y))
         if rrangein(x, y, xs / 3 + 100, ys / 2):
-            # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y,
-            # xs / 3 + 100, ys / 2)[1]) * 180 / math.pi, 20, 10, 3, 10))
             normlistin.append(
                 e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y, xs / 3 + 100,
-                                                                                            ys / 2)[1]),
-                  float(parvaluesf[3]), float(parvaluesf[4]), float(parvaluesf[2]), float(parvaluesf[5])))
+                ys / 2)[1]), float(parvaluesf[3]), float(parvaluesf[4]), float(parvaluesf[2]), float(parvaluesf[5])))
             tally += 1
         if rrangeout(x, y, xs / 3 + 100, ys / 2):
-            # normlistin.append(e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y,
-            # xs / 3 + 100, ys / 2)[1]) * 180 / math.pi, 20, 10, 3, 10))
             normlistin.append(
                 e(normlistinplaw[tally], cart2pol(x, y, xs / 3 + 100, ys / 2)[0], (cart2pol(x, y, xs / 3 + 100,
-                                                                                            ys / 2)[1]),
-                  float(parvaluesf[3]), float(parvaluesf[4]), float(parvaluesf[2]), float(parvaluesf[5])))
+                ys / 2)[1]), float(parvaluesf[3]), float(parvaluesf[4]), float(parvaluesf[2]), float(parvaluesf[5])))
             tally += 1
 # Figure out how to have spiral apply in the same way across this border - maybe I don't even need one?
 
-
+print(newxylist[round(len(newxylist)/2)])
 # Normalize the values of the radial gradient
 maximum = max(normlistin)
 for n in normlistin:
     n = n / maximum
     normlistout.append(n)
 
-print("max normlistout", max(normlistout))
-print("min normlistout", min(normlistout))
 
 # Scales the normalized list to the range of the grayscale (0-255)
 tally = 0
@@ -237,9 +238,6 @@ normlistin.sort()
 normlistout.sort()
 values.sort()
 
-print(min(values))
-print(min(normlistin))
-print(max(normlistin))
 
 # Find the quarter, half, three-quarter, and maximum values of the list in order to find marker locations for bar graph
 # Calculate indices of these values to find corresponding color markers in the values list
@@ -260,18 +258,15 @@ qind = normlistin.index(quarter)
 hind = normlistin.index(half)
 tqind = normlistin.index(threequarter)
 mind = normlistin.index(maximum)
-# print(qind, hind, tqind, mind)
-# print(values[qind], values[hind], values[tqind], values[mind])
-print("values", values[0], values[10], values[100], values[1000], values[10000])
 quarter = "%.3f" % quarter
 half = "%.3f" % half
 threequarter = "%.3f" % threequarter
 maximum = "%.3f" % maximum
 
 # Draw outline of bar graph
-x1 = 1450
+x1 = 1510
 y1 = 200
-x2 = 1500
+x2 = 1560
 y2 = 1200
 draw.rectangle((x1, y1, x2, y2), outline=0)
 width = x2 - x1
@@ -308,7 +303,7 @@ draw.text((920, 540), "xi_b", font=myfont, fill=0)
 draw.text((1080, 300), "xi_max", font=myfont, fill=0)
 
 # Draw lines that will align with labels created below
-draw.line([x1 - 230, 0, x1 - 230, 1400], fill=0, width=1)
+draw.line([x1 - 210, 0, x1 - 210, 1400], fill=0, width=1)
 draw.line([x1 - 3, ycoordq, x2 + 3, ycoordq], fill=0, width=2)
 draw.line([x1 - 3, ycoordh, x2 + 3, ycoordh], fill=0, width=2)
 draw.line([x1 - 3, ycoordtq, x2 + 3, ycoordtq], fill=0, width=2)
@@ -336,26 +331,35 @@ lrotatedlabelimg = llabelimg.rotate(90.0, expand=1)
 
 # Paste new vertical labels into original image
 img.paste(brotatedlabelimg, (x1 - 175, int((y2 - y1) / 2) + 115))
-img.paste(lrotatedlabelimg, (x2 + 110, int((y2 - y1) / 2) + 150))
+img.paste(lrotatedlabelimg, (x2 + 110, int((y2 - y1) / 2) + 50))
 
 # Create axes and labels for axes
-draw.line([xbase, xbase, xbase, ys - ybase], fill=0, width=2)
-draw.line([xbase, ys - ybase, x1 - 280, ys - ybase], fill=0, width=2)
+draw.line([xbase, xbase, xbase, ys - ybase], fill=0, width=4)
+draw.line([xbase, ys - ybase, x1 - 280, ys - ybase], fill=0, width=4)
 xlabelimg = Image.new("L", (180, 40), "white")
 ylabelimg = Image.new("L", (180, 40), "white")
 xlabeldraw = ImageDraw.Draw(xlabelimg)
 ylabeldraw = ImageDraw.Draw(ylabelimg)
-xlabeldraw.text((10, 20), "x label", font=myfont, fill=0, anchor="lm")
-ylabeldraw.text((10, 20), "y label", font=myfont, fill=0, anchor="lm")
+xlabeldraw.text((10, 20), "x = x'c\u00b2GM", font=myfont, fill=0, anchor="lm")
+ylabeldraw.text((10, 20), "y = y'c\u00b2GM", font=myfont, fill=0, anchor="lm")
 yrotatedlabelimg = ylabelimg.rotate(90.0, expand=1)
-img.paste(xlabelimg, (600, 1350))
+img.paste(xlabelimg, (660, 1315))
 img.paste(yrotatedlabelimg, (50, 550))
-for item in newxylist:
-    if item == (0, 0):
-        ind = newxylist.index(item)
-        print('line 356')
-        print(newxlist[ind], newylist[ind])
-        draw.line([newxlist[ind], newylist[ind], newxlist[ind] + 10, newylist[ind]], fill=0, width=3)
+
+# Create Cartesian grid
+base = -600
+for item in newxlist:
+    if item == base:
+        draw.line([xytransfrev(base, -600), xytransfrev(base, 600)])
+        draw.text(xytransfrev(base, -650), str(base), font=myfont)
+        base += 100
+
+base = -600
+for item in newylist:
+    if item == base:
+        draw.line([xytransfrev(-600, base), xytransfrev(600, base)])
+        draw.text(xytransfrev(-650, base), str(base), font=myfont)
+        base += 100
 
 # Display and save the image
 img.show()
